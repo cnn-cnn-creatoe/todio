@@ -4,81 +4,59 @@
 
 # Todio
 
-**The Todo Widget That Breathes.**
+**一款轻量、顺滑的桌面待办小组件。**
 
-[Download for Windows](https://github.com/nan/todio/releases/latest) • [Download for Linux](https://github.com/nan/todio/releases/latest) • [Features](#features)
+[Windows 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest) · [Linux 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest) · [macOS 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest)
 
 </div>
 
 ---
 
-## 🎨 Philosophy
+## 简介
 
-Todio isn't just a todo list; it's a piece of digital furniture for your desktop. Built with a "Glassmorphism First" approach, it features a frosted glass interface that adapts to your wallpaper, blurring the line between your tasks and your environment.
+Todio 是一款桌面待办小组件，主打玻璃拟态风格与顺滑交互动画。它常驻桌面、占用轻量，适合快速记录与管理任务。
 
-We believe animation isn't just decoration—it's feedback. Every interaction in Todio is governed by a unified physics engine (`Silky Flow`), ensuring that tasks don't just appear; they glide, breathe, and settle with satisfying weight.
+## 功能
 
-## ✨ Features
+- 玻璃拟态 UI，视觉轻盈
+- 顺滑动画与自适应高度
+- 拖拽排序
+- 轻量常驻，不打扰
+- 支持 Windows / Linux / macOS 桌面端
 
-### 💎 Premium Aesthetics
+## 安装与使用
 
-- **Real-time Glassmorphism**: Background blurring that works seamlessly on Windows and Linux.
-- **Adaptive UI**: A responsive design that looks stunning whether pinned as a small widget or expanded as a full list.
-- **Squircle Perfection**: Every corner is smoothed with Apple-style super-ellipses for a modern, organic feel.
+前往 [Releases](https://github.com/cnn-cnn-creatoe/todio/releases) 下载对应平台安装包：
 
-### 🌊 Silky Animation Engine
+- Windows：`.exe`（NSIS 安装器）
+- Linux：`.AppImage` 或 `.deb`
+- macOS：`.dmg` 或 `.zip`
 
-- **No Stutter**: Powered by a custom `Cubic Bezier (0.25, 0.1, 0.25, 1.0)` physics curve.
-- **Fluid Layouts**: The window height animates smoothly ("Accordion Effect") as you add tasks or open the calendar. No jarring jumps.
-- **Staggered Entry**: Lists load with a rhythmic cascade, making even checking your tasks feel like a performance.
+## 开发
 
-### ⚡ Power User Ready
-
-- **Natural Language Parsing**: Type "Meeting tomorrow 9am" -> It sets the due date automatically.
-- **Smart Time Detection**: Recognizes "tonight", "next friday", "in 30 mins".
-- **Compact & Pin**: Keeps your focus without stealing your screen real estate.
-- **Cross-Platform**: Now fully native on **Ubuntu/Debian Linux** (.deb, .AppImage) and **Windows** (.nsis).
-
-## 🚀 Installation
-
-### Windows
-
-1. Download `Todio-Setup-1.0.0.exe` from [Releases](https://github.com/nan/todio/releases).
-2. Run to install. It will auto-launch.
-
-### Linux (Ubuntu/Debian)
-
-**Option 1: AppImage (Universal)**
+### 安装依赖
 
 ```bash
-chmod +x Todio-1.0.0-Linux.AppImage
-./Todio-1.0.0-Linux.AppImage
+npm install
 ```
 
-**Option 2: DEB Package**
+### 启动开发环境
 
 ```bash
-sudo dpkg -i todio_1.0.0_amd64.deb
+npm run electron:dev
 ```
 
-## 🛠️ Tech Stack
+### 打包
 
-- **Core**: [Electron](https://www.electronjs.org/) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Motion**: [Framer Motion](https://www.framer.com/motion/)
-- **Build**: [Vite](https://vitejs.dev/) + [Electron Builder](https://www.electron.build/)
+```bash
+npm run electron:build
+```
 
-## 📜 License
+打包产物默认输出到 `dist-electron/`。
 
-MIT License © 2026 Todio.
-Designed with ❤️ for clarity and calm.
+## 目录结构
 
-## 🌟 Star History
-
-<a href="https://star-history.com/#nan/todio&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nan/todio&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nan/todio&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=nan/todio&type=Date" />
- </picture>
-</a>
+- `src/` 前端界面与逻辑
+- `electron/` 主进程代码
+- `public/` 静态资源
+- `build/` 安装器与图标资源
