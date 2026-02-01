@@ -8,15 +8,52 @@ const __dirname = path.dirname(__filename);
 
 const sizes = [16, 24, 32, 48, 64, 128, 256];
 
+async function computeTrimRect(inputPath) {
+  const { data, info } = await sharp(inputPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  const channels = info.channels;
+
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * channels;
+      const alpha = data[idx + 3];
+      if (alpha !== 0) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  // Fully transparent or already tight
+  if (maxX < minX || maxY < minY) return null;
+  if (minX === 0 && minY === 0 && maxX === w - 1 && maxY === h - 1) return null;
+
+  return {
+    left: minX,
+    top: minY,
+    width: (maxX - minX) + 1,
+    height: (maxY - minY) + 1,
+  };
+}
+
 async function createIco() {
   const inputPath = path.join(__dirname, 'build', 'icon.png');
   const outputPath = path.join(__dirname, 'build', 'icon.ico');
   
+  const trimRect = await computeTrimRect(inputPath);
+  const base = trimRect ? sharp(inputPath).extract(trimRect) : sharp(inputPath);
+
   // Create resized PNG buffers
   const pngs = await Promise.all(
     sizes.map(size => 
-      sharp(inputPath)
-        .resize(size, size)
+      base
+        .clone()
+        .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
         .toBuffer()
     )

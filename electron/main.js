@@ -2,22 +2,33 @@ import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, No
 import path from 'path';
 import { fileURLToPath } from 'url';
 import https from 'https';
+import { readFileSync, existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let tray = null;
-import { readFileSync } from 'fs';
+let currentLanguage = 'en';
+
+const ICON_PNG_PATH = path.join(__dirname, '../build/icon.png');
+
+const disableGpu = process.env.TODIO_DISABLE_GPU === '1';
+if (disableGpu) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('disable-gpu');
+}
+
+const autoExitMs = Number.parseInt(process.env.TODIO_AUTO_EXIT_MS || '', 10);
 
 const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../package.json')));
 const CURRENT_VERSION = packageJson.version;
-const GITHUB_REPO = 'xxomega2077xx/softdo';
-const UPDATE_CHECK_KEY = 'softdo-skip-update';
-const SKIP_VERSION_KEY = 'softdo-skip-version';
+const GITHUB_REPO = 'nan/todio';
+const UPDATE_CHECK_KEY = 'todio-skip-update';
+const SKIP_VERSION_KEY = 'todio-skip-version';
 
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.softdo.app');
+  app.setAppUserModelId('com.todio.app');
 }
 
 // Single instance lock - prevent multiple instances
@@ -28,11 +39,13 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', () => {
     // Someone tried to run a second instance, focus our window instead
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      if (!mainWindow.isVisible()) mainWindow.show();
-      mainWindow.focus();
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createWindow();
+      return;
     }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
   });
 }
 
@@ -49,23 +62,196 @@ ipcMain.handle('set-auto-launch', (event, enabled) => {
   return app.getLoginItemSettings().openAtLogin;
 });
 
+function trimTransparent(image, threshold = 0) {
+  try {
+    if (!image || image.isEmpty()) return image;
+
+    const { width, height } = image.getSize();
+    if (!width || !height) return image;
+
+    const bitmap = image.toBitmap(); // BGRA
+    let minX = width, minY = height, maxX = -1, maxY = -1;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const alpha = bitmap[idx + 3];
+        if (alpha > threshold) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    // Fully transparent image; nothing to trim.
+    if (maxX < minX || maxY < minY) return image;
+
+    // Already tight.
+    if (minX === 0 && minY === 0 && maxX === width - 1 && maxY === height - 1) return image;
+
+    return image.crop({
+      x: minX,
+      y: minY,
+      width: (maxX - minX) + 1,
+      height: (maxY - minY) + 1,
+    });
+  } catch (e) {
+    console.error('trimTransparent failed:', e);
+    return image;
+  }
+}
+
+function loadIconPng() {
+  const iconPath = ICON_PNG_PATH;
+  if (!existsSync(iconPath)) {
+    return nativeImage.createEmpty();
+  }
+  return nativeImage.createFromPath(iconPath);
+}
+
+function getTrayIconImage() {
+  const traySize = process.platform === 'win32' ? 32 : 22;
+  const icon = trimTransparent(loadIconPng(), 0);
+  if (!icon || icon.isEmpty()) return icon;
+  return icon.resize({ width: traySize, height: traySize, quality: 'best' });
+}
+
+function getAppIconImage() {
+  // Use a larger base size so Windows can downscale cleanly for taskbar/titlebar.
+  const icon = trimTransparent(loadIconPng(), 0);
+  if (!icon || icon.isEmpty()) return icon;
+  return icon.resize({ width: 256, height: 256, quality: 'best' });
+}
+
+// IPC handler to send icon data URL to renderer
+ipcMain.handle('get-icon-data-url', () => {
+  try {
+    const icon = getAppIconImage();
+    if (!icon || icon.isEmpty()) return null;
+    const png = icon.toPNG();
+    return `data:image/png;base64,${png.toString('base64')}`;
+  } catch (error) {
+    console.error('Failed to read icon file:', error);
+    return null;
+  }
+});
+
 function createWindow() {
+  const forceOpaque = process.env.TODIO_OPAQUE === '1';
+  const useTransparent = !forceOpaque;
+  const windowBgColor = useTransparent ? '#00000000' : '#F0EEF8';
+  const openDevTools = process.env.TODIO_DEVTOOLS === '1';
+  let didShowLoadError = false;
+  const appIcon = getAppIconImage();
+
+  if (process.platform === 'win32') {
+    try {
+      app.setAppUserModelId('com.todio.app');
+    } catch {}
+  }
+
   mainWindow = new BrowserWindow({
-    width: 360,
-    height: 540,
+    width: 340,
+    height: 500,
     frame: false,
-    transparent: true,
-    resizable: false,
-    hasShadow: false,
+    transparent: useTransparent,
+    backgroundColor: windowBgColor,
+    resizable: true,
+    hasShadow: true,
     alwaysOnTop: false,
     skipTaskbar: false,
+    show: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
-    minWidth: 320,
-    minHeight: 480,
-    icon: path.join(__dirname, '../build/icon.png')
+    minWidth: 260,
+    minHeight: 360,
+    icon: appIcon
+  });
+
+  // Ensure frameless window behaves correctly
+  mainWindow.setMenuBarVisibility(false);
+  mainWindow.setAutoHideMenuBar(true);
+
+  // Show window when ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.center();
+    mainWindow.show();
+    mainWindow.focus();
+    console.log('Window shown and centered');
+    if (openDevTools) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
+  });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('Renderer process gone:', details);
+    dialog.showMessageBox({
+      type: 'error',
+      title: 'Todio crashed',
+      message: 'The renderer process exited unexpectedly.',
+      detail: `Reason: ${details.reason}`,
+      buttons: ['OK'],
+    });
+  });
+
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('Renderer process unresponsive');
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Give React a moment to mount so diagnostics reflect actual render status.
+    setTimeout(async () => {
+      try {
+        const info = await mainWindow.webContents.executeJavaScript(
+          `(() => {
+            const root = document.getElementById('root');
+            return {
+              title: document.title,
+              hasRoot: !!root,
+              rootChildren: root ? root.children.length : -1,
+              bodyBg: getComputedStyle(document.body).backgroundColor,
+            };
+          })();`
+        );
+        console.log('Renderer diagnostics:', info);
+      } catch (err) {
+        console.error('Renderer diagnostics failed:', err);
+      }
+    }, 500);
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (!isMainFrame || didShowLoadError) return;
+    didShowLoadError = true;
+    dialog.showMessageBox({
+      type: 'error',
+      title: 'Todio failed to load',
+      message: 'The app UI could not be loaded.',
+      detail: process.env.ELECTRON_START_URL
+        ? `Dev server is not reachable. Please run \"npm run electron:dev\" (or start Vite at http://127.0.0.1:5010) and try again.\n\n${errorDescription} (${errorCode})`
+        : `Please reinstall or rebuild the app, then try again.\n\n${errorDescription} (${errorCode})`,
+      buttons: ['OK'],
+    });
+  });
+
+  // Prevent window from being destroyed on close
+  mainWindow.on('close', (event) => {
+    if (isQuitting) return;
+    // Instead of closing, hide the window to the tray
+    event.preventDefault();
+    mainWindow.hide();
   });
 
   // IPC handlers for window controls
@@ -94,6 +280,17 @@ function createWindow() {
     mainWindow?.hide();
   });
 
+  ipcMain.on('set-language', (event, lang) => {
+    if (lang === 'zh' || lang === 'en') {
+      currentLanguage = lang;
+      updateTrayMenu();
+    }
+  });
+
+  ipcMain.on('quit-app', () => {
+    app.quit();
+  });
+
   // Update check handlers
   ipcMain.handle('check-for-updates', async () => {
     return await checkForUpdates();
@@ -120,38 +317,55 @@ function createWindow() {
   createTray();
 }
 
-function createTray() {
-  // Use a small icon for tray
-  // Use icon.png (generated high res) and let internal resizing handle it, or resize here
-  const iconPath = path.join(__dirname, '../build/icon.png');
-  let trayIcon = nativeImage.createFromPath(iconPath);
-  // nativeImage resizing handles scaling better than just loading raw?
-  // 16x16 is small. Try 24x24 or 32x32 for modern displays
-  trayIcon = trayIcon.resize({ width: 22, height: 22 }); 
-  
-  tray = new Tray(trayIcon);
-  
+function getTrayLabels(lang) {
+  const isZh = lang === 'zh';
+  return {
+    show: isZh ? '显示 Todio' : 'Show Todio',
+    alwaysOnTop: isZh ? '置顶' : 'Always on Top',
+    help: isZh ? '帮助' : 'Help',
+    checkUpdates: isZh ? '检查更新' : 'Check for Updates',
+    quit: isZh ? '退出' : 'Quit',
+    tooltip: 'Todio',
+  };
+}
+
+function updateTrayMenu() {
+  if (!tray) return;
+
+  const labels = getTrayLabels(currentLanguage);
+
   const contextMenu = Menu.buildFromTemplate([
-    { 
-      label: 'Show SoftDo', 
+    {
+      label: labels.show,
       click: () => {
-        mainWindow?.show();
-        mainWindow?.focus();
-      }
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          createWindow();
+          return;
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      },
     },
     { type: 'separator' },
-    { 
-      label: 'Always on Top', 
+    {
+      label: labels.alwaysOnTop,
       type: 'checkbox',
-      checked: false,
+      checked: mainWindow?.isAlwaysOnTop?.() ?? false,
       click: (menuItem) => {
         mainWindow?.setAlwaysOnTop(menuItem.checked);
         mainWindow?.webContents.send('pin-state-changed', menuItem.checked);
-      }
+      },
     },
     { type: 'separator' },
-    { 
-      label: 'Check for Updates', 
+    {
+      label: labels.help,
+      click: () => {
+        shell.openExternal(`https://github.com/${GITHUB_REPO}`);
+      },
+    },
+    { type: 'separator' },
+    {
+      label: labels.checkUpdates,
       click: async () => {
         const update = await checkForUpdates();
         if (update.hasUpdate) {
@@ -161,7 +375,7 @@ function createTray() {
             message: `A new version (${update.latestVersion}) is available!`,
             detail: 'Would you like to download it now?',
             buttons: ['Download', 'Later'],
-            defaultId: 0
+            defaultId: 0,
           });
           if (result === 0) {
             shell.openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`);
@@ -171,30 +385,42 @@ function createTray() {
             type: 'info',
             title: 'No Updates',
             message: 'You are running the latest version!',
-            buttons: ['OK']
+            buttons: ['OK'],
           });
         }
-      }
+      },
     },
     { type: 'separator' },
-    { 
-      label: 'Quit', 
+    {
+      label: labels.quit,
       click: () => {
         app.quit();
-      }
-    }
+      },
+    },
   ]);
 
-  tray.setToolTip('SoftDo - Your Tasks');
+  tray.setToolTip(labels.tooltip);
   tray.setContextMenu(contextMenu);
+}
 
-  // Click to show/hide window
+function createTray() {
+  const trayIcon = getTrayIconImage();
+
+  tray = new Tray(trayIcon);
+
+  updateTrayMenu();
+
   tray.on('click', () => {
-    if (mainWindow?.isVisible()) {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createWindow();
+      return;
+    }
+
+    if (mainWindow.isVisible()) {
       mainWindow.hide();
     } else {
-      mainWindow?.show();
-      mainWindow?.focus();
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 }
@@ -267,10 +493,14 @@ function runScheduler() {
       if (state.lastNotifiedStage !== stage) {
         // Send Notification
         if (Notification.isSupported()) {
+          const notificationIconPath = process.platform === 'win32'
+            ? path.join(__dirname, '../build/icon.ico')
+            : path.join(__dirname, '../build/icon.png');
+
           new Notification({
-            title: 'SoftDo Reminder',
+            title: 'Todio Reminder',
             body: `Task "${todo.text}" ${message}`,
-            icon: path.join(__dirname, '../build/icon.ico')
+            icon: notificationIconPath
           }).show();
         }
         
@@ -293,20 +523,36 @@ app.whenReady().then(() => {
        }
     });
   }, 3000); // Check 3s after launch
+
+  if (Number.isFinite(autoExitMs) && autoExitMs > 0) {
+    setTimeout(() => {
+      app.quit();
+    }, autoExitMs);
+  }
 });
 
-app.on('window-all-closed', () => {
-  // On Windows, quit the app when all windows are closed
-  // User can use tray icon to show/hide instead
-  if (process.platform !== 'darwin') {
-    app.quit();
+app.on('activate', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  } else {
+    mainWindow.show();
+    mainWindow.focus();
   }
+});
+
+app.on('window-all-closed', (e) => {
+  // Keep the app running in the tray. Windows/Linux default behavior should be: hide window, not quit.
+  // (On macOS, apps usually stay active too, so we also keep running.)
+  e.preventDefault();
 });
 
 // Update window creation to handle "Run at startup" logic if needed (handled by builder)
 // ... (previous logic)
 
+let isQuitting = false;
+
 app.on('before-quit', () => {
+  isQuitting = true;
   clearInterval(notificationTimer);
   tray?.destroy();
 });
@@ -317,7 +563,7 @@ async function checkForUpdates() {
     const options = {
         hostname: 'api.github.com',
         path: `/repos/${GITHUB_REPO}/releases/latest`,
-        headers: { 'User-Agent': 'SoftDo-App' }
+        headers: { 'User-Agent': 'Todio-App' }
     };
     
     return new Promise((resolve) => {

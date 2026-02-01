@@ -23,3 +23,11 @@ dist-electron
 *.njsproj
 *.sln
 *.sw?
+
+# IDE and tool specific
+.claude/
+.cursor/
+*.local.json
+
+# Build logs
+build_log*.txt

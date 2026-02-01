@@ -1,21 +1,21 @@
 {
-  "name": "softdo",
+  "name": "todio",
   "private": true,
-  "version": "1.6.2",
+  "version": "1.0.0",
   "author": {
-    "name": "xxomega2077xx",
-    "email": "xxomega2077xx@gmail.com"
+    "name": "nan",
+    "email": "nan323660@gamil.com"
   },
   "description": "A beautiful desktop todo widget with glassmorphism design, smart due times, and smooth animations",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 127.0.0.1 --port 5010 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "npm run build && electron-builder"
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:5010 && cross-env ELECTRON_START_URL=http://127.0.0.1:5010 electron .\"",
+    "electron:build": "node create-ico.js && npm run build && electron-builder"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -26,6 +26,7 @@
     "autoprefixer": "^10.4.23",
     "clsx": "^2.1.1",
     "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "electron": "^33.4.11",
     "electron-builder": "^26.4.0",
     "eslint": "^9.39.1",
@@ -47,8 +48,8 @@
     "wait-on": "^9.0.3"
   },
   "build": {
-    "appId": "com.softdo.app",
-    "productName": "SoftDo",
+    "appId": "com.todio.app",
+    "productName": "Todio",
     "directories": {
       "output": "dist-electron"
     },
@@ -60,18 +61,18 @@
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico",
-      "artifactName": "SoftDo-${version}-Windows.${ext}"
+      "artifactName": "Todio-${version}-Windows.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SoftDo",
+      "shortcutName": "Todio",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "installerSidebar": "build/installerSidebar.png",
-      "uninstallerSidebar": "build/installerSidebar.png",
+      "installerSidebar": "build/Installer-Sidebar.png",
+      "uninstallerSidebar": "build/Uninstaller-Sidebar.png",
       "runAfterFinish": true
     },
     "mac": {
@@ -79,12 +80,12 @@
         "dmg",
         "zip"
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon.ico",
       "category": "public.app-category.productivity",
-      "artifactName": "SoftDo-${version}-macOS.${ext}"
+      "artifactName": "Todio-${version}-macOS.${ext}"
     },
     "dmg": {
-      "title": "SoftDo",
+      "title": "Todio",
       "icon": "build/icon.png"
     },
     "linux": {
@@ -92,8 +93,8 @@
         "AppImage",
         "deb"
       ],
-      "icon": "build/icon.png",
-      "artifactName": "SoftDo-${version}-Linux.${ext}"
+      "icon": "build/icon.ico",
+      "artifactName": "Todio-${version}-Linux.${ext}"
     },
     "publish": {
       "provider": "github",

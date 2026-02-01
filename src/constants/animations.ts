@@ -1,7 +1,7 @@
 import type { Variants, Transition } from "framer-motion";
 
 // 🌊 SILKY FLOW
-// The core curve that defines the "feel" of SoftDo v1.5.0
+// The core curve that defines the "feel" of Todio
 // Linear-ish start for quick response, smooth deceleration for premium finish.
 export const EASE_SILKY: [number, number, number, number] = [0.25, 0.1, 0.25, 1.0];
 

@@ -4,7 +4,9 @@
 
 @layer base {
   html, body {
-    @apply bg-transparent overflow-hidden;
+    @apply overflow-hidden;
+    /* Avoid fully transparent window on Windows which can swallow clicks */
+    background-color: rgba(0, 0, 0, 0.01);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -31,4 +33,20 @@
 
 .app-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Toggle Checkbox Styles */
+.toggle-checkbox:checked {
+  right: 0;
+  border-color: #8b5cf6;
+}
+
+.toggle-checkbox:checked + label {
+  background-color: #8b5cf6;
+}
+
+/* Shimmer Animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }

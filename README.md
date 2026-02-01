@@ -1,12 +1,12 @@
-# <div align="center"><img src="build/icon.png" width="128" height="128" alt="SoftDo Logo"></div>
+# <div align="center"><img src="build/icon.png" width="128" height="128" alt="Todio Logo"></div>
 
 <div align="center">
 
-# SoftDo
+# Todio
 
 **The Todo Widget That Breathes.**
 
-[Download for Windows](https://github.com/xxomega2077xx/softdo/releases/latest) • [Download for Linux](https://github.com/xxomega2077xx/softdo/releases/latest) • [Features](#features)
+[Download for Windows](https://github.com/nan/todio/releases/latest) • [Download for Linux](https://github.com/nan/todio/releases/latest) • [Features](#features)
 
 </div>
 
@@ -14,9 +14,9 @@
 
 ## 🎨 Philosophy
 
-SoftDo isn't just a todo list; it's a piece of digital furniture for your desktop. Built with a "Glassmorphism First" approach, it features a frosted glass interface that adapts to your wallpaper, blurring the line between your tasks and your environment.
+Todio isn't just a todo list; it's a piece of digital furniture for your desktop. Built with a "Glassmorphism First" approach, it features a frosted glass interface that adapts to your wallpaper, blurring the line between your tasks and your environment.
 
-We believe animation isn't just decoration—it's feedback. Every interaction in SoftDo is governed by a unified physics engine (`Silky Flow`), ensuring that tasks don't just appear; they glide, breathe, and settle with satisfying weight.
+We believe animation isn't just decoration—it's feedback. Every interaction in Todio is governed by a unified physics engine (`Silky Flow`), ensuring that tasks don't just appear; they glide, breathe, and settle with satisfying weight.
 
 ## ✨ Features
 
@@ -43,7 +43,7 @@ We believe animation isn't just decoration—it's feedback. Every interaction in
 
 ### Windows
 
-1. Download `SoftDo-Setup-1.5.0.exe` from [Releases](https://github.com/xxomega2077xx/softdo/releases).
+1. Download `Todio-Setup-1.0.0.exe` from [Releases](https://github.com/nan/todio/releases).
 2. Run to install. It will auto-launch.
 
 ### Linux (Ubuntu/Debian)
@@ -51,14 +51,14 @@ We believe animation isn't just decoration—it's feedback. Every interaction in
 **Option 1: AppImage (Universal)**
 
 ```bash
-chmod +x SoftDo-1.5.0-Linux.AppImage
-./SoftDo-1.5.0-Linux.AppImage
+chmod +x Todio-1.0.0-Linux.AppImage
+./Todio-1.0.0-Linux.AppImage
 ```
 
 **Option 2: DEB Package**
 
 ```bash
-sudo dpkg -i softdo_1.5.0_amd64.deb
+sudo dpkg -i todio_1.0.0_amd64.deb
 ```
 
 ## 🛠️ Tech Stack
@@ -70,15 +70,15 @@ sudo dpkg -i softdo_1.5.0_amd64.deb
 
 ## 📜 License
 
-MIT License © 2026 SoftDo.
+MIT License © 2026 Todio.
 Designed with ❤️ for clarity and calm.
 
 ## 🌟 Star History
 
-<a href="https://star-history.com/#xxomega2077xx/softdo&Date">
+<a href="https://star-history.com/#nan/todio&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xxomega2077xx/softdo&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xxomega2077xx/softdo&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xxomega2077xx/softdo&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nan/todio&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nan/todio&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=nan/todio&type=Date" />
  </picture>
 </a>

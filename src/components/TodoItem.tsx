@@ -1,4 +1,4 @@
-import { Check, Trash2, Clock, Pencil, FileText, X, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, Trash2, Clock, FileText, X, GripVertical, CheckCircle } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import clsx from 'clsx'
@@ -11,9 +11,12 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, text: string) => void;
-  onUpdateDetails: (id: string, details: string) => void;
+  onUpdateDetails: (id: string, details: string, priority?: 'low' | 'medium' | 'high') => void;
   onUpdateDue: (id: string, due: Date | null) => void;
   language: Language;
+  isPending?: boolean;
+  onPendingComplete?: () => void;
+  filterMode?: 'today' | 'past' | 'future';
 }
 
 interface TimeInfo {
@@ -46,7 +49,7 @@ function formatTimeRemaining(dueTime: Date, t: any): TimeInfo {
   return { text: `${days}d ${hours % 24}h`, urgent: false, overdue: false }
 }
 
-export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateDetails, onUpdateDue, language }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateDetails, onUpdateDue, language, isPending, onPendingComplete, filterMode = 'today' }: TodoItemProps) {
   const t = getTranslation(language)
   const [, setTick] = useState(0)
   const [isEditing, setIsEditing] = useState(false)
@@ -61,7 +64,9 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
   const [selectedDate, setSelectedDate] = useState('')
   const [hour, setHour] = useState('12')
   const [minute, setMinute] = useState('00')
-  const [calendarMonth, setCalendarMonth] = useState(new Date())
+  const [reschedulePriority, setReschedulePriority] = useState<'low' | 'medium' | 'high'>(todo.priority || 'medium')
+  // Calendar month state - kept for future use
+  // const [calendarMonth, setCalendarMonth] = useState(new Date())
 
   
   const menuRef = useRef<HTMLDivElement>(null)
@@ -73,27 +78,42 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
       setSelectedDate(formatDateLocal(d))
       setHour(d.getHours().toString().padStart(2, '0'))
       setMinute(d.getMinutes().toString().padStart(2, '0'))
-      setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+      // setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
     } else {
       setSelectedDate('')
       setHour('12')
       setMinute('00')
-      setCalendarMonth(new Date())
+      // setCalendarMonth(new Date())
     }
+    setReschedulePriority(todo.priority || 'medium')
     setShowDueModal(true)
     setShowContextMenu(false)
   }
 
-  const handleSaveDue = () => {
-    if (selectedDate) {
-      const h = Math.min(23, Math.max(0, parseInt(hour) || 0))
-      const m = Math.min(59, Math.max(0, parseInt(minute) || 0))
-      const due = new Date(`${selectedDate}T${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`)
-      onUpdateDue(todo.id, due)
-    } else {
-      onUpdateDue(todo.id, null)
+  // Auto-open modal if this is a pending todo
+  useEffect(() => {
+    if (isPending) {
+      setShowDueModal(true)
+      const now = new Date()
+      setSelectedDate(formatDateLocal(now))
+      setHour(now.getHours().toString().padStart(2, '0'))
+      setMinute(now.getMinutes().toString().padStart(2, '0'))
+      setReschedulePriority(todo.priority || 'medium')
     }
+  }, [isPending, todo.priority])
+
+  const handleSaveDue = () => {
+    const dateStr = selectedDate || formatDateLocal(new Date())
+    const h = Math.min(23, Math.max(0, parseInt(hour) || 0))
+    const m = Math.min(59, Math.max(0, parseInt(minute) || 0))
+    const due = new Date(`${dateStr}T${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`)
+    onUpdateDue(todo.id, due)
+    // 同时更新优先级
+    onUpdateDetails(todo.id, todo.details || '', reschedulePriority)
     setShowDueModal(false)
+    if (isPending && onPendingComplete) {
+      onPendingComplete()
+    }
   }
 
   // Update every second if urgent
@@ -127,7 +147,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
   }
 
   const handleSaveDetails = () => {
-    onUpdateDetails(todo.id, detailsText)
+    onUpdateDetails(todo.id, detailsText, todo.priority)
     setShowDetailsModal(false)
   }
 
@@ -141,61 +161,70 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
     return `${year}-${month}-${day}`
   }
 
-  const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-  const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay()
-  
-  const isPast = (day: number) => {
-    const d = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day)
-    const today = new Date(); today.setHours(0,0,0,0)
-    return d < today
-  }
+  // Calendar helper functions - kept for future use
+  // const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+  // const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+  // 
+  // const isPast = (day: number) => {
+  //   const d = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day)
+  //   const today = new Date(); today.setHours(0,0,0,0)
+  //   return d < today
+  // }
 
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(calendarMonth)
-    const firstDay = getFirstDayOfMonth(calendarMonth)
-    const days = []
-    const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-
-    const headers = weekdays.map(w => (
-      <div key={w} className="text-[10px] font-semibold text-neu-muted/40 text-center py-1">{w}</div>
-    ))
-
-    for (let i = 0; i < firstDay; i++) days.push(<div key={`empty-${i}`} />)
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const past = isPast(day)
-      const selected = selectedDate === formatDateLocal(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day))
-      const today = formatDateLocal(new Date()) === formatDateLocal(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day))
-      
-      days.push(
-        <button
-          key={day}
-          type="button"
-          disabled={past}
-          onClick={() => setSelectedDate(formatDateLocal(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day)))}
-          className={clsx(
-            "w-7 h-7 rounded-lg text-xs font-semibold transition-all duration-100 cursor-pointer",
-            selected ? 'bg-violet-500 text-white shadow-md shadow-violet-500/30' :
-            today ? 'bg-violet-100 text-violet-600' :
-            past ? 'text-neu-muted/20 cursor-not-allowed' : 'text-neu-text/80 hover:bg-violet-50'
-          )}
-        >
-          {day}
-        </button>
-      )
-    }
-    return { headers, days }
-  }
-
-  const { headers, days } = renderCalendar()
+  // Calendar rendering function - kept for future use
+  // const renderCalendar = () => {
+  //   const daysInMonth = getDaysInMonth(calendarMonth)
+  //   const firstDay = getFirstDayOfMonth(calendarMonth)
+  //   const days = []
+  //   const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+  //
+  //   const headers = weekdays.map(w => (
+  //     <div key={w} className="text-[10px] font-semibold text-neu-muted/40 text-center py-1">{w}</div>
+  //   ))
+  //
+  //   for (let i = 0; i < firstDay; i++) days.push(<div key={`empty-${i}`} />)
+  //
+  //   for (let day = 1; day <= daysInMonth; day++) {
+  //     const past = isPast(day)
+  //     const selected = selectedDate === formatDateLocal(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day))
+  //     const today = formatDateLocal(new Date()) === formatDateLocal(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day))
+  //     
+  //     days.push(
+  //       <button
+  //         key={day}
+  //         type="button"
+  //         disabled={past}
+  //         onClick={() => setSelectedDate(formatDateLocal(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day)))}
+  //         className={clsx(
+  //           "w-7 h-7 rounded-lg text-xs font-semibold transition-all duration-100 cursor-pointer",
+  //           selected ? 'bg-violet-500 text-white shadow-md shadow-violet-500/30' :
+  //           today ? 'bg-violet-100 text-violet-600' :
+  //           past ? 'text-neu-muted/20 cursor-not-allowed' : 'text-neu-text/80 hover:bg-violet-50'
+  //         )}
+  //       >
+  //         {day}
+  //       </button>
+  //     )
+  //   }
+  //   return { headers, days }
+  // }
   
   return (
     <>
       <motion.div
         layout
         onContextMenu={handleContextMenu}
+        onClick={(e) => {
+          // Don't open details if clicking on checkbox or action buttons
+          if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.group\\/checkbox')) {
+            return
+          }
+          // Open details modal on click for all filters
+          setShowDetailsModal(true)
+        }}
         className={clsx(
-          'group flex items-center gap-2 p-3.5 bg-white/60 hover:bg-white/80 backdrop-blur-sm border border-white/50 rounded-[24px] shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-default',
+          'group flex items-center gap-1.5 p-2 bg-white/60 hover:bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden',
+          'cursor-pointer',
           todo.completed && 'opacity-60 bg-white/40'
         )}
       >
@@ -208,13 +237,19 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
         <motion.button
           layout={false}
           whileTap={{ scale: 0.95 }}
-          onClick={() => onToggle(todo.id)}
-          className="relative cursor-pointer flex-shrink-0 group/checkbox"
+          onClick={() => {
+            // Don't allow toggling if in past filter
+            if (filterMode === 'past') return
+            onToggle(todo.id)
+          }}
+          className={`relative flex-shrink-0 group/checkbox ${
+            filterMode === 'past' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          }`}
         >
           <motion.div
             layout
             className={clsx(
-              "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 border",
+              "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 border",
               todo.completed 
                 ? 'border-violet-500 bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-[0_2px_8px_rgba(139,92,246,0.4)]' 
                 : 'border-neu-muted/20 bg-white/50 backdrop-blur-md shadow-inner'
@@ -224,7 +259,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
               initial={false}
               animate={{ scale: todo.completed ? 1 : 0, opacity: todo.completed ? 1 : 0 }}
             >
-              <Check size={12} strokeWidth={3} className="drop-shadow-sm" />
+              <Check size={10} strokeWidth={3} className="drop-shadow-sm" />
             </motion.div>
           </motion.div>
         </motion.button>
@@ -242,14 +277,22 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
                       onBlur={() => { if (editText.trim()) onRename(todo.id, editText.trim()); else setEditText(todo.text); setIsEditing(false); }}
-                      className="w-full bg-transparent border-none outline-none text-sm font-medium text-neu-text p-0 m-0"
+                      className="w-full bg-transparent border-none outline-none text-xs font-medium text-neu-text p-0 m-0"
                   />
               </form>
           ) : (
-              <div className="relative group/text">
+              <div className="relative group/text flex items-center gap-1.5">
+                {/* Priority indicator */}
+                <div 
+                  className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                    (todo.priority || 'medium') === 'low' ? 'bg-gray-400' :
+                    (todo.priority || 'medium') === 'medium' ? 'bg-yellow-400' :
+                    'bg-red-400'
+                  }`}
+                />
                 <motion.span 
                   animate={{ color: todo.completed ? 'rgba(99, 110, 114, 0.4)' : 'rgba(45, 52, 54, 1)' }}
-                  className="block text-sm font-medium select-none truncate"
+                  className="block text-xs font-medium select-none truncate flex-1"
                 >
                   {todo.text}
                 </motion.span>
@@ -263,52 +306,93 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
           )}
           
           <AnimatePresence>
-            {timeInfo && !todo.completed && (
+            {todo.dueTime && (
               <motion.div 
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                className={clsx(
-                  "flex items-center gap-2 mt-1 text-xs font-medium",
-                  timeInfo.overdue ? 'text-red-500' : timeInfo.urgent ? 'text-amber-500' : 'text-neu-muted/50'
-                )}
+                className="flex items-center gap-1 mt-0.5"
               >
-                <div className="flex items-center gap-1">
-                  <Clock size={10} />
-                  <span>{timeInfo.text}</span>
-                </div>
+                <Clock size={9} className="text-neu-muted/50" />
+                <span className="text-[10px] font-medium text-neu-muted/60">
+                  {(() => {
+                    const due = new Date(todo.dueTime)
+                    const now = new Date()
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                    const dueDate = new Date(due.getFullYear(), due.getMonth(), due.getDate())
+                    
+                    // Future date - show full date and time
+                    if (dueDate > today) {
+                      const dateStr = due.toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                      const timeStr = due.toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: language === 'en'
+                      })
+                      return `${dateStr} ${timeStr}`
+                    }
+                    // Past date - show full date and time
+                    if (dueDate < today) {
+                      const dateStr = due.toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                      const timeStr = due.toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: language === 'en'
+                      })
+                      return `${dateStr} ${timeStr}`
+                    }
+                    // Today - show relative time (only if not completed and not overdue)
+                    if (!todo.completed && timeInfo && !timeInfo.overdue) {
+                      return timeInfo.text
+                    }
+                    // If overdue today, just show time without "overdue" text
+                    if (!todo.completed && timeInfo && timeInfo.overdue) {
+                      const timeStr = due.toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: language === 'en'
+                      })
+                      return timeStr
+                    }
+                    // Completed today - show time
+                    const timeStr = due.toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: language === 'en'
+                    })
+                    return timeStr
+                  })()}
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Action Buttons (Hover) */}
-        {!todo.completed && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Action Buttons (Hover) - View Details and Reschedule */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <motion.button
+              whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+              onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }}
+              className="w-6 h-6 rounded-lg flex items-center justify-center text-neu-muted/30 hover:text-violet-500 hover:bg-violet-50 transition-all cursor-pointer"
+              title={language === 'en' ? 'View Details' : '查看详情'}
+          >
+              <FileText size={12} />
+          </motion.button>
+          {!todo.completed && (
             <motion.button
                 whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                onClick={openDueModal}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-neu-muted/30 hover:text-violet-500 hover:bg-violet-50 transition-all cursor-pointer"
-                title={t.changeDue}
+                onClick={(e) => { e.stopPropagation(); openDueModal(); }}
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-neu-muted/30 hover:text-violet-500 hover:bg-violet-50 transition-all cursor-pointer"
+                title={language === 'en' ? 'Reschedule' : '重新安排'}
             >
-                <Clock size={14} />
+                <Clock size={12} />
             </motion.button>
-            <motion.button
-                whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                onClick={() => { setEditText(todo.text); setIsEditing(true); }}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-neu-muted/30 hover:text-violet-500 hover:bg-violet-50 transition-all cursor-pointer"
-                title={t.rename}
-            >
-                <Pencil size={14} />
-            </motion.button>
-            <motion.button
-                whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                onClick={() => onDelete(todo.id)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-neu-muted/30 hover:text-red-400 hover:bg-red-50 transition-all cursor-pointer"
-                title={t.delete}
-            >
-                <Trash2 size={14} />
-            </motion.button>
-          </div>
-        )}
+          )}
+        </div>
       </motion.div>
 
       {/* Context Menu */}
@@ -318,7 +402,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
             ref={menuRef}
             initial={{ opacity: 0, scale: 0.9, y: -5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -5 }}
             style={{ top: Math.min(contextMenuPos.y, window.innerHeight - 180), left: Math.min(contextMenuPos.x, window.innerWidth - 160) }}
-            className="fixed z-[100] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/80 py-2 min-w-[160px] origin-top-left"
+            className="fixed z-[100] bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 dark:border-white/10 py-2 min-w-[200px] origin-top-left ring-1 ring-black/5"
           >
             {/* Header to fill space */}
             <div className="px-3.5 py-2 mb-1">
@@ -327,59 +411,188 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
             </div>
             <div className="h-px bg-gray-100/50 mx-2 mb-1" />
             
-            <MenuButton icon={<Clock size={13} />} text={t.changeDue} onClick={openDueModal} />
-            <MenuButton icon={<FileText size={13} />} text={t.editDetails} onClick={() => { setShowContextMenu(false); setDetailsText(todo.details || ''); setShowDetailsModal(true); }} />
-            <MenuButton icon={<Pencil size={13} />} text={t.rename} onClick={() => { setShowContextMenu(false); setEditText(todo.text); setIsEditing(true); }} />
+            {/* Unified menu for all filters */}
+            <MenuButton 
+              icon={<FileText size={16} />} 
+              text={language === 'en' ? 'View Details' : '查看详情'} 
+              onClick={() => { setShowContextMenu(false); setShowDetailsModal(true); }} 
+            />
+            <MenuButton 
+              icon={<Clock size={16} />} 
+              text={language === 'en' ? 'Reschedule' : '重新安排'} 
+              onClick={() => { setShowContextMenu(false); openDueModal(); }} 
+            />
             
-            <div className="h-px bg-gray-100/50 my-1 mx-2" />
-            <MenuButton icon={<Trash2 size={13} />} text={t.delete} color="text-red-500" onClick={() => { setShowContextMenu(false); onDelete(todo.id); }} />
+            <div className="h-px bg-gray-200 mx-2 my-1" />
+            <MenuButton 
+              icon={<Trash2 size={16} />} 
+              text={t.delete} 
+              color="text-red-600" 
+              onClick={() => { setShowContextMenu(false); onDelete(todo.id); }} 
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Due Date Modal */}
+      {/* Time Modification Modal */}
       <AnimatePresence>
         {showDueModal && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[200] flex items-center justify-center p-4"
             onClick={() => setShowDueModal(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[260px] bg-white rounded-3xl shadow-2xl border border-white/50 overflow-hidden"
+              className="w-full max-w-xs bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/60 overflow-hidden max-h-[90vh] flex flex-col text-gray-800"
             >
-              <div className="p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                   <h3 className="text-xs font-bold text-neu-text">{t.changeDue}</h3>
-                   <button onClick={() => setShowDueModal(false)} className="text-neu-muted hover:text-neu-text p-1"><X size={14}/></button>
+              {/* Header */}
+              <div className="px-4 py-3 flex justify-between items-center border-b border-gray-200/50 flex-shrink-0">
+                <h1 className="text-sm font-semibold text-gray-800">
+                  {language === 'en' ? 'Reschedule Task' : '重新安排任务'}
+                </h1>
+                <button 
+                  onClick={() => setShowDueModal(false)} 
+                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+                {/* Priority */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">
+                    {language === 'en' ? 'Priority' : '优先级'}
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setReschedulePriority('low')}
+                      className={`flex-1 px-3 py-2 rounded-lg font-semibold text-[10px] transition-all flex items-center justify-center gap-1.5 ${
+                        reschedulePriority === 'low'
+                          ? 'bg-gray-500 text-white'
+                          : 'bg-white/50 text-gray-600 hover:bg-white/70'
+                      }`}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                      {language === 'en' ? 'Low' : '低'}
+                    </button>
+                    <button
+                      onClick={() => setReschedulePriority('medium')}
+                      className={`flex-1 px-3 py-2 rounded-lg font-semibold text-[10px] transition-all flex items-center justify-center gap-1.5 ${
+                        reschedulePriority === 'medium'
+                          ? 'bg-yellow-500 text-white'
+                          : 'bg-white/50 text-gray-600 hover:bg-white/70'
+                      }`}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                      {language === 'en' ? 'Medium' : '中'}
+                    </button>
+                    <button
+                      onClick={() => setReschedulePriority('high')}
+                      className={`flex-1 px-3 py-2 rounded-lg font-semibold text-[10px] transition-all flex items-center justify-center gap-1.5 ${
+                        reschedulePriority === 'high'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-white/50 text-gray-600 hover:bg-white/70'
+                      }`}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                      {language === 'en' ? 'High' : '高'}
+                    </button>
+                  </div>
                 </div>
-                
-                {/* Simplified Calendar adapted from TodoInput */}
+
+                {/* Date & Time - Compact inline */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))} className="p-1 hover:bg-violet-50 rounded-lg text-neu-muted"><ChevronLeft size={14}/></button>
-                    <span className="text-[10px] font-bold">{calendarMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-                    <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))} className="p-1 hover:bg-violet-50 rounded-lg text-neu-muted"><ChevronRight size={14}/></button>
+                  <label className="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">
+                    {language === 'en' ? 'Date & Time' : '日期和时间'}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {/* Date Selector */}
+                    <div className="flex-1 flex gap-1">
+                      <button
+                        onClick={() => {
+                          const today = new Date()
+                          setSelectedDate(formatDateLocal(today))
+                        }}
+                        className={`flex-1 px-2 py-1.5 rounded-lg font-semibold text-[10px] transition-all ${
+                          !selectedDate || selectedDate === formatDateLocal(new Date())
+                            ? 'bg-violet-500 text-white'
+                            : 'bg-white/50 text-gray-600 hover:bg-white/70'
+                        }`}
+                      >
+                        {language === 'en' ? 'Today' : '今天'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const tomorrow = new Date()
+                          tomorrow.setDate(tomorrow.getDate() + 1)
+                          setSelectedDate(formatDateLocal(tomorrow))
+                        }}
+                        className={`flex-1 px-2 py-1.5 rounded-lg font-semibold text-[10px] transition-all ${
+                          selectedDate === formatDateLocal((() => {
+                            const t = new Date()
+                            t.setDate(t.getDate() + 1)
+                            return t
+                          })())
+                            ? 'bg-violet-500 text-white'
+                            : 'bg-white/50 text-gray-600 hover:bg-white/70'
+                        }`}
+                      >
+                        {language === 'en' ? 'Tomorrow' : '明天'}
+                      </button>
+                      <input
+                        type="date"
+                        value={selectedDate || formatDateLocal(new Date())}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="flex-1 px-2 py-1.5 rounded-lg font-semibold text-[10px] bg-white/50 text-gray-600 border border-gray-200/30 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                      />
+                    </div>
+                    
+                    {/* Time Selector */}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="23"
+                        value={hour}
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value) || 0
+                          if (val < 0) val = 0
+                          if (val > 23) val = 23
+                          setHour(val.toString().padStart(2, '0'))
+                        }}
+                        className="w-10 text-center text-sm font-bold text-gray-800 bg-white/60 border border-gray-200/30 rounded-lg py-1 focus:ring-2 focus:ring-violet-300 focus:outline-none"
+                      />
+                      <span className="text-xs text-gray-400">:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={minute}
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value) || 0
+                          if (val < 0) val = 0
+                          if (val > 59) val = 59
+                          setMinute(val.toString().padStart(2, '0'))
+                        }}
+                        className="w-10 text-center text-sm font-bold text-gray-800 bg-white/60 border border-gray-200/30 rounded-lg py-1 focus:ring-2 focus:ring-violet-300 focus:outline-none"
+                      />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-7 gap-y-0.5 justify-items-center">
-                    {headers}
-                    {days}
-                  </div>
                 </div>
-                
-                {/* Time picker */}
-                <div className="flex items-center justify-center gap-2 pt-2 border-t border-gray-100">
-                   <input type="text" maxLength={2} value={hour} onFocus={e => e.target.select()} onChange={e => setHour(e.target.value.replace(/\D/g,'').slice(0,2))} className="w-8 h-8 rounded-lg bg-gray-50 text-center text-xs font-bold text-violet-600 outline-none focus:bg-white border border-transparent focus:border-violet-200" />
-                   <span className="font-bold text-gray-300">:</span>
-                   <input type="text" maxLength={2} value={minute} onFocus={e => e.target.select()} onChange={e => setMinute(e.target.value.replace(/\D/g,'').slice(0,2))} className="w-8 h-8 rounded-lg bg-gray-50 text-center text-xs font-bold text-violet-600 outline-none focus:bg-white border border-transparent focus:border-violet-200" />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                   <button onClick={() => { setSelectedDate(''); onUpdateDue(todo.id, null); setShowDueModal(false); }} className="py-1.5 text-[10px] font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">Clear</button>
-                   <button onClick={handleSaveDue} className="py-1.5 text-[10px] font-bold text-white bg-violet-500 rounded-xl hover:bg-violet-600 shadow-lg shadow-violet-500/20 transition-colors">Save</button>
-                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="px-4 py-3 border-t border-gray-200/50 bg-gray-50/30 flex-shrink-0">
+                <button
+                  onClick={handleSaveDue}
+                  className="w-full bg-violet-500 hover:bg-violet-600 text-white font-semibold py-2 rounded-lg text-xs shadow-md shadow-violet-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle size={14} />
+                  <span>{language === 'en' ? 'Confirm' : '确认'}</span>
+                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -395,20 +608,77 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
             onClick={() => setShowDetailsModal(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-white/50 overflow-hidden"
+              className="w-full max-w-xs bg-white/85 backdrop-blur-xl rounded-2xl shadow-xl border border-white/60 overflow-hidden max-h-[90vh] flex flex-col"
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <h3 className="text-sm font-bold text-neu-text">{t.editDetails}</h3>
-                <button onClick={() => setShowDetailsModal(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} /></button>
+              {/* Header */}
+              <div className="px-4 py-3 flex justify-between items-center border-b border-gray-200/50 flex-shrink-0">
+                <h1 className="text-sm font-semibold text-gray-800">
+                  {language === 'en' ? 'Task Details' : '任务详情'}
+                </h1>
+                <button 
+                  onClick={() => setShowDetailsModal(false)} 
+                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <div className="p-5 space-y-4">
-                <div><p className="text-[10px] text-neu-muted mb-1 font-bold uppercase">{t.task}</p><p className="text-sm font-semibold">{todo.text}</p></div>
-                <textarea autoFocus value={detailsText} onChange={(e) => setDetailsText(e.target.value)} placeholder={t.addDetails} className="w-full h-32 p-4 text-sm bg-gray-50 border-none rounded-2xl resize-none outline-none focus:bg-white focus:ring-2 focus:ring-violet-100 transition-all" />
+
+              <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+                {/* Priority Level - Read-only display */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">
+                    {language === 'en' ? 'Priority' : '优先级'}
+                  </label>
+                  <div className="px-3 py-2 bg-white/60 rounded-lg border border-gray-200/50 flex items-center gap-2">
+                    <div 
+                      className={`w-2 h-2 rounded-full ${
+                        (todo.priority || 'medium') === 'low' ? 'bg-gray-400' :
+                        (todo.priority || 'medium') === 'medium' ? 'bg-yellow-400' :
+                        'bg-red-400'
+                      }`}
+                    ></div>
+                    <span className="text-xs font-medium text-gray-800">
+                      {language === 'en' 
+                        ? (todo.priority || 'medium') === 'low' ? 'Low' : (todo.priority || 'medium') === 'medium' ? 'Medium' : 'High'
+                        : (todo.priority || 'medium') === 'low' ? '低' : (todo.priority || 'medium') === 'medium' ? '中' : '高'
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">
+                    {language === 'en' ? 'Notes' : '备注内容'}
+                  </label>
+                  <textarea
+                    value={detailsText}
+                    onChange={(e) => setDetailsText(e.target.value)}
+                    placeholder={language === 'en' ? 'Add task notes...' : '添加任务备注...'}
+                    className="w-full px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm border border-gray-200/50 text-xs text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-violet-300 focus:outline-none resize-none"
+                    rows={4}
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="px-4 py-3 border-t border-gray-200/50 bg-gray-50/30 flex-shrink-0">
                 <div className="flex gap-2">
-                  <button onClick={() => setShowDetailsModal(false)} className="flex-1 py-3 text-sm font-bold text-neu-muted bg-gray-100 rounded-2xl hover:bg-gray-200 transition-colors">{t.cancel}</button>
-                  <button onClick={handleSaveDetails} className="flex-1 py-3 text-sm font-bold text-white bg-violet-500 rounded-2xl hover:bg-violet-600 shadow-lg shadow-violet-500/20 transition-colors">{t.save}</button>
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="flex-1 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 font-semibold text-xs hover:bg-gray-50 transition-all active:scale-[0.98]"
+                  >
+                    {language === 'en' ? 'Cancel' : '取消'}
+                  </button>
+                  <button
+                    onClick={handleSaveDetails}
+                    className="flex-1 py-2 rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-semibold text-xs shadow-md shadow-violet-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle size={14} />
+                    <span>{language === 'en' ? 'Save' : '保存'}</span>
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -419,16 +689,20 @@ export default function TodoItem({ todo, onToggle, onDelete, onRename, onUpdateD
   )
 }
 
-function MenuButton({ icon, text, onClick, color = "text-neu-text" }: { icon: React.ReactNode, text: string, onClick: () => void, color?: string }) {
+function MenuButton({ icon, text, onClick, color = "text-gray-800" }: { icon: React.ReactNode, text: string, onClick: () => void, color?: string }) {
+  const isRed = color.includes('red')
   return (
     <button
       onClick={onClick}
       className={clsx(
-        "w-full px-3.5 py-2.5 text-left text-xs font-semibold hover:bg-violet-50 hover:text-violet-600 transition-all flex items-center gap-3 cursor-pointer",
+        "w-full px-3 py-2.5 text-left text-sm font-medium transition-all flex items-center gap-3 cursor-pointer rounded-xl",
+        isRed 
+          ? "hover:bg-red-50 dark:hover:bg-red-900/20" 
+          : "hover:bg-gray-100 dark:hover:bg-white/10",
         color
       )}
     >
-      <span className="opacity-50 group-hover:opacity-100">{icon}</span>
+      <span className={isRed ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}>{icon}</span>
       <span>{text}</span>
     </button>
   )

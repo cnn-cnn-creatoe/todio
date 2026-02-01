@@ -13,6 +13,9 @@ interface TodoListProps {
   onUpdateDue: (id: string, due: Date | null) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   language: Language;
+  pendingTodoId?: string | null;
+  onPendingComplete?: () => void;
+  filterMode?: 'today' | 'past' | 'future';
 }
 
 export default function TodoList({ 
@@ -23,7 +26,10 @@ export default function TodoList({
   onUpdateDetails, 
   onUpdateDue,
   onReorder, 
-  language 
+  language,
+  pendingTodoId,
+  onPendingComplete,
+  filterMode = 'today'
 }: TodoListProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [targetIndex, setTargetIndex] = useState<number | null>(null)
@@ -58,7 +64,7 @@ export default function TodoList({
   }
 
   return (
-    <div ref={containerRef} className="space-y-2 relative">
+    <div ref={containerRef} className="space-y-1.5 relative">
       <AnimatePresence mode='popLayout'>
         {todos.map((todo, index) => (
           <motion.div
@@ -115,6 +121,9 @@ export default function TodoList({
               onUpdateDetails={onUpdateDetails}
               onUpdateDue={onUpdateDue}
               language={language}
+              isPending={pendingTodoId === todo.id}
+              onPendingComplete={onPendingComplete}
+              filterMode={filterMode}
             />
           </motion.div>
         ))}

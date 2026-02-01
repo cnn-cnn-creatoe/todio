@@ -3,7 +3,7 @@ export type Language = 'en' | 'zh'
 
 export const translations = {
   en: {
-    appName: 'SoftDo',
+    appName: 'Todio',
     todayTasks: "Today's Tasks",
     remaining: 'remaining',
     clearAll: 'Clear All',
@@ -12,6 +12,9 @@ export const translations = {
     opacity: 'Opacity',
     autoStart: 'Auto Start',
     language: 'Language',
+    help: 'Help',
+    checkUpdates: 'Check for Updates',
+    quit: 'Quit',
     editDetails: 'Edit Details',
     changeDue: 'Change Due Time',
     rename: 'Rename',
@@ -28,7 +31,7 @@ export const translations = {
     updateAvailable: 'A new version is available with improved features.',
     update: 'Update',
     skip: 'Skip',
-    welcome: 'Welcome to SoftDo',
+    welcome: 'Welcome to Todio',
     welcomeFeatures: 'Enjoy the new Resize & Opacity features.',
     time: 'Time',
     today: 'Today',
@@ -37,9 +40,12 @@ export const translations = {
     nextWeek: 'Next Week',
     overdue: 'overdue',
     left: 'left',
+    editTask: 'Edit Task',
+    setReminder: 'Set Reminder',
+    moveToTomorrow: 'Move to Tomorrow',
   },
   zh: {
-    appName: 'SoftDo',
+    appName: 'Todio',
     todayTasks: '今日任务',
     remaining: '项待办',
     clearAll: '清空',
@@ -48,6 +54,9 @@ export const translations = {
     opacity: '透明度',
     autoStart: '开机启动',
     language: '语言',
+    help: '帮助',
+    checkUpdates: '检查更新',
+    quit: '退出',
     editDetails: '编辑详情',
     changeDue: '修改时间',
     rename: '重命名',
@@ -64,7 +73,7 @@ export const translations = {
     updateAvailable: '发现新版本，包含更多改进。',
     update: '更新',
     skip: '跳过',
-    welcome: '欢迎使用 SoftDo',
+    welcome: '欢迎使用 Todio',
     welcomeFeatures: '体验全新的调整大小和透明度功能。',
     time: '时间',
     today: '今天',
@@ -73,6 +82,9 @@ export const translations = {
     nextWeek: '下周',
     overdue: '已过期',
     left: '剩余',
+    editTask: '编辑任务',
+    setReminder: '设置提醒',
+    moveToTomorrow: '移至明天',
   }
 }
 

@@ -1,39 +1,33 @@
 import { useState, useRef } from 'react'
-import { Plus, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Clock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CheckCircle, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getTranslation } from '../i18n'
 import type { Language } from '../i18n'
 
 interface TodoInputProps {
   onAdd: (text: string, dueTime?: Date | null) => void;
+  onAddWithDetails: (text: string) => void;
   language: Language;
 }
 
-export default function TodoInput({ onAdd, language }: TodoInputProps) {
+export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInputProps) {
   const t = getTranslation(language)
   const [text, setText] = useState('')
   const [showDuePicker, setShowDuePicker] = useState(false)
+  const [showTimePicker, setShowTimePicker] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
   const [hour, setHour] = useState('12')
   const [minute, setMinute] = useState('00')
+  const [isAM, setIsAM] = useState(true)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const minuteInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (text.trim()) {
-      let due: Date | null = null
-      if (selectedDate) {
-        const h = Math.min(23, Math.max(0, parseInt(hour) || 0))
-        const m = Math.min(59, Math.max(0, parseInt(minute) || 0))
-        due = new Date(`${selectedDate}T${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`)
-      }
-      onAdd(text, due)
+      // Instead of adding directly, trigger the details modal
+      onAddWithDetails(text.trim())
       setText('')
-      setSelectedDate('')
-      setHour('12')
-      setMinute('00')
-      setShowDuePicker(false)
     }
   }
 
@@ -46,6 +40,53 @@ export default function TodoInput({ onAdd, language }: TodoInputProps) {
       setCalendarMonth(new Date())
     }
     setShowDuePicker(!showDuePicker)
+  }
+
+  const toggleTimePicker = () => {
+    setShowTimePicker(!showTimePicker)
+    if (!showTimePicker) {
+      // Initialize with current time or existing time
+      if (selectedDate && hour && minute) {
+        const h = parseInt(hour) || 12
+        setIsAM(h < 12 || h === 12)
+        setHour((h % 12 || 12).toString().padStart(2, '0'))
+      } else {
+        const now = new Date()
+        const h = now.getHours()
+        setHour((h % 12 || 12).toString().padStart(2, '0'))
+        setMinute(now.getMinutes().toString().padStart(2, '0'))
+        setIsAM(h < 12)
+      }
+    }
+  }
+
+  const adjustHour = (delta: number) => {
+    let h = parseInt(hour) || 0
+    h = (h + delta + 24) % 24
+    setHour(h.toString().padStart(2, '0'))
+    setIsAM(h < 12)
+  }
+
+  const adjustMinute = (delta: number) => {
+    let m = parseInt(minute) || 0
+    m = (m + delta + 60) % 60
+    setMinute(m.toString().padStart(2, '0'))
+  }
+
+  const handleSetTime = () => {
+    // Convert to 24-hour format if needed
+    let h = parseInt(hour) || 0
+    if (!isAM && h < 12) {
+      h += 12
+    } else if (isAM && h === 12) {
+      h = 0
+    }
+    setHour(h.toString().padStart(2, '0'))
+    setShowTimePicker(false)
+    // If no date selected, set today's date
+    if (!selectedDate) {
+      setSelectedDate(formatDateLocal(new Date()))
+    }
   }
 
   const normalizeHour = (val: string) => {
@@ -180,39 +221,30 @@ export default function TodoInput({ onAdd, language }: TodoInputProps) {
   const { headers, days } = renderCalendar()
 
   return (
-    <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="flex gap-3">
-        <div className="flex-1 flex gap-2">
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={t.whatNeedsToBeDone}
-            className="w-full bg-white/70 backdrop-blur-xl rounded-[18px] px-5 py-3 outline-none text-neu-text placeholder-neu-muted/35 border border-white/60 transition-all duration-200 focus:bg-white/95 focus:border-violet-200 text-sm font-medium shadow-sm"
-          />
-          
-          <button
-            type="button"
-            onClick={toggleDuePicker}
-            className={`w-[46px] h-[46px] rounded-[18px] flex items-center justify-center transition-all duration-200 cursor-pointer border flex-shrink-0 shadow-sm ${
-              hasDue
-                ? 'bg-violet-500 border-violet-500 text-white shadow-violet-500/20'
-                : showDuePicker
-                ? 'bg-violet-100 border-violet-200 text-violet-600'
-                : 'bg-white/70 border-white/60 text-neu-muted/40 hover:text-violet-500 hover:border-violet-200 hover:bg-white/90'
-            }`}
-          >
-            <Clock size={18} />
-          </button>
+    <div className="space-y-1.5 flex-shrink-0">
+      <form onSubmit={handleSubmit}>
+        <div className="bg-white/40 rounded-lg p-1.5 border border-white/40 shadow-sm backdrop-blur-sm">
+          <div className="flex flex-col gap-1">
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t.whatNeedsToBeDone}
+              className="w-full bg-transparent border-0 border-b border-slate-300/60 px-1.5 py-0.5 focus:ring-0 focus:border-primary text-slate-800 placeholder-slate-400/70 transition-colors text-[10px] font-medium"
+            />
+            
+            <div className="flex items-center justify-end pt-0.5">
+              <button
+                type="submit"
+                disabled={!text.trim()}
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-lg shadow-purple-500/40 flex items-center gap-1 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-30 disabled:shadow-none disabled:cursor-not-allowed"
+              >
+                <Plus size={11} strokeWidth={3} />
+                {language === 'en' ? 'Add' : '添加'}
+              </button>
+            </div>
+          </div>
         </div>
-        
-        <button
-          type="submit"
-          disabled={!text.trim()}
-          className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-[18px] w-[46px] h-[46px] flex items-center justify-center text-white shadow-lg shadow-violet-500/25 disabled:opacity-30 disabled:shadow-none transition-all duration-200 cursor-pointer flex-shrink-0 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Plus size={20} strokeWidth={2.5} />
-        </button>
       </form>
       
       {/* Due Picker */}
@@ -355,6 +387,120 @@ export default function TodoInput({ onAdd, language }: TodoInputProps) {
                 </button>
               </div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Time Picker Modal */}
+      <AnimatePresence>
+        {showTimePicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-[200] flex items-center justify-center p-4"
+            onClick={() => setShowTimePicker(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 overflow-hidden flex flex-col items-center p-6 sm:p-8 relative"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between w-full mb-8">
+                <span className="text-sm font-semibold tracking-wide text-slate-500 uppercase">
+                  {language === 'en' ? 'Set Time' : '设置时间'}
+                </span>
+                <button
+                  onClick={() => setShowTimePicker(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors bg-white/50 rounded-full p-1"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Time Display */}
+              <div className="flex items-center justify-center gap-4 mb-8">
+                {/* Hour */}
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={() => adjustHour(1)}
+                    className="text-slate-400 hover:text-primary transition-colors p-1"
+                  >
+                    <ChevronUp size={28} />
+                  </button>
+                  <div className="w-24 h-28 bg-white/80 backdrop-blur-md rounded-3xl border border-white shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.06)] flex items-center justify-center">
+                    <span className="text-6xl font-bold text-slate-700 tracking-tighter">
+                      {hour.padStart(2, '0')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => adjustHour(-1)}
+                    className="text-slate-400 hover:text-primary transition-colors p-1"
+                  >
+                    <ChevronDown size={28} />
+                  </button>
+                </div>
+
+                <div className="text-4xl font-bold text-slate-300 pb-2">:</div>
+
+                {/* Minute */}
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={() => adjustMinute(1)}
+                    className="text-slate-400 hover:text-primary transition-colors p-1"
+                  >
+                    <ChevronUp size={28} />
+                  </button>
+                  <div className="w-24 h-28 bg-white/80 backdrop-blur-md rounded-3xl border border-white shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.06)] flex items-center justify-center">
+                    <span className="text-6xl font-bold text-slate-700 tracking-tighter">
+                      {minute.padStart(2, '0')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => adjustMinute(-1)}
+                    className="text-slate-400 hover:text-primary transition-colors p-1"
+                  >
+                    <ChevronDown size={28} />
+                  </button>
+                </div>
+              </div>
+
+              {/* AM/PM Toggle */}
+              <div className="bg-slate-100/80 p-1.5 rounded-2xl flex items-center mb-10 border border-white/60 shadow-inner w-56">
+                <button
+                  onClick={() => setIsAM(true)}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+                    isAM
+                      ? 'bg-white text-primary shadow-sm border border-slate-100'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  AM
+                </button>
+                <button
+                  onClick={() => setIsAM(false)}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+                    !isAM
+                      ? 'bg-white text-primary shadow-sm border border-slate-100'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  PM
+                </button>
+              </div>
+
+              {/* Set Time Button */}
+              <button
+                onClick={handleSetTime}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-semibold text-lg shadow-lg shadow-violet-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group border border-white/20"
+              >
+                <CheckCircle size={20} className="text-white/90 group-hover:text-white transition-colors" />
+                {language === 'en' ? 'Set Time' : '设置时间'}
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
