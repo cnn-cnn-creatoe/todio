@@ -45,7 +45,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           mkdir -p android/keystore
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/keystore/todio-release.keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n' | base64 -d > android/keystore/todio-release.keystore
           cat > android/keystore.properties <<EOF
           storeFile=keystore/todio-release.keystore
           storePassword=$ANDROID_KEYSTORE_PASSWORD
