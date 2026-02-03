@@ -374,8 +374,6 @@ function AppIcon() {
 }
 
 function App() {
-  const [resizeHintDir, setResizeHintDir] = useState<string | null>(null)
-
   const [todos, setTodos] = useState<Todo[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -587,7 +585,6 @@ function App() {
     e.preventDefault()
     isResizing.current = true
     resizeDir.current = dir
-    setResizeHintDir(dir)
     startPos.current = { x: e.screenX, y: e.screenY }
     startBounds.current = {
       x: window.screenX,
@@ -717,7 +714,6 @@ function App() {
 
   const handleResizeEnd = useCallback(() => {
     isResizing.current = false
-    setResizeHintDir(null)
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
   }, [])
