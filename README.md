@@ -120,3 +120,19 @@ npm run electron:build
 - `electron/` 主进程代码
 - `public/` 静态资源
 - `build/` 安装器与图标资源
+
+## 移动端构建（Android / iOS）
+
+本项目使用 Capacitor 打包移动端壳层，已提供一键脚本：
+
+```bash
+npm run mobile:add
+npm run mobile:sync
+npm run mobile:android
+npm run mobile:ios
+```
+
+说明：
+- Android：生成 `android/` 工程并打开 Android Studio。
+- iOS：仅支持在 macOS + Xcode 环境构建，生成 `ios/` 工程并打开 Xcode。
+- 首次运行会自动下载 Capacitor CLI。
