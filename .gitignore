@@ -31,3 +31,10 @@ dist-electron
 
 # Build logs
 build_log*.txt
+
+# Android signing / build outputs
+android/keystore.properties
+android/keystore/
+android/keystore.info.txt
+android/app/build/
+android/build/

@@ -10,6 +10,8 @@
 [Linux 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest) ·
 [macOS 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest)
 
+下载提示：Windows 请下载 `.exe`；macOS 请下载 `.dmg`/`.zip`；Linux 请下载 `.AppImage`/`.deb`；Android 请下载 `.apk`；iOS 请下载 `.ipa`
+
 </div>
 
 ---
@@ -113,6 +115,11 @@ npm run electron:build
 ```
 
 打包产物默认输出到 `dist-electron/`。
+
+### iOS 构建（仅 macOS）
+
+提供脚本：`scripts/ios-build.sh`  
+在 macOS + Xcode 环境运行即可生成 iOS 工程并打开 Xcode。
 
 ## 目录结构
 
