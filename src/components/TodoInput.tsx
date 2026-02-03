@@ -1,19 +1,17 @@
 import { useState, useRef } from 'react'
-import { Plus, Clock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CheckCircle, X } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CheckCircle, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getTranslation } from '../i18n'
 import type { Language } from '../i18n'
 
 interface TodoInputProps {
-  onAdd: (text: string, dueTime?: Date | null) => void;
   onAddWithDetails: (text: string) => void;
   language: Language;
 }
 
-export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInputProps) {
+export default function TodoInput({ onAddWithDetails, language }: TodoInputProps) {
   const t = getTranslation(language)
   const [text, setText] = useState('')
-  const [showDuePicker, setShowDuePicker] = useState(false)
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
   const [hour, setHour] = useState('12')
@@ -31,34 +29,6 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
     }
   }
 
-  const toggleDuePicker = () => {
-    if (showDuePicker) {
-      setSelectedDate('')
-      setHour('12')
-      setMinute('00')
-    } else {
-      setCalendarMonth(new Date())
-    }
-    setShowDuePicker(!showDuePicker)
-  }
-
-  const toggleTimePicker = () => {
-    setShowTimePicker(!showTimePicker)
-    if (!showTimePicker) {
-      // Initialize with current time or existing time
-      if (selectedDate && hour && minute) {
-        const h = parseInt(hour) || 12
-        setIsAM(h < 12 || h === 12)
-        setHour((h % 12 || 12).toString().padStart(2, '0'))
-      } else {
-        const now = new Date()
-        const h = now.getHours()
-        setHour((h % 12 || 12).toString().padStart(2, '0'))
-        setMinute(now.getMinutes().toString().padStart(2, '0'))
-        setIsAM(h < 12)
-      }
-    }
-  }
 
   const adjustHour = (delta: number) => {
     let h = parseInt(hour) || 0
@@ -155,8 +125,8 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
   const isToday = (day: number) => {
     const today = new Date()
     return calendarMonth.getFullYear() === today.getFullYear() &&
-           calendarMonth.getMonth() === today.getMonth() &&
-           day === today.getDate()
+      calendarMonth.getMonth() === today.getMonth() &&
+      day === today.getDate()
   }
 
   const isPast = (day: number) => {
@@ -195,7 +165,7 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
       const past = isPast(day)
       const today = isToday(day)
       const selected = isSelected(day)
-      
+
       days.push(
         <button
           key={day}
@@ -206,8 +176,8 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
             w-7 h-7 rounded-lg text-xs font-semibold transition-all duration-100 cursor-pointer
             ${selected ? 'bg-violet-500 text-white shadow-md shadow-violet-500/30' :
               today ? 'bg-violet-100 text-violet-600' :
-              past ? 'text-neu-muted/20 cursor-not-allowed' :
-              'text-neu-text/80 hover:bg-violet-50'}
+                past ? 'text-neu-muted/20 cursor-not-allowed' :
+                  'text-neu-text/80 hover:bg-violet-50'}
           `}
         >
           {day}
@@ -223,21 +193,27 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
   return (
     <div className="space-y-1.5 flex-shrink-0">
       <form onSubmit={handleSubmit}>
-        <div className="bg-white/40 rounded-lg p-1.5 border border-white/40 shadow-sm backdrop-blur-sm">
+        <div className="bg-white/20 dark:bg-black/10 rounded-lg p-1.5 border border-[color:var(--app-border)] shadow-theme backdrop-blur-md">
           <div className="flex flex-col gap-1">
             <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={t.whatNeedsToBeDone}
-              className="w-full bg-transparent border-0 border-b border-slate-300/60 px-1.5 py-0.5 focus:ring-0 focus:border-primary text-slate-800 placeholder-slate-400/70 transition-colors text-[10px] font-medium"
+              className="w-full bg-transparent border-0 border-b border-[color:var(--app-border)] px-1.5 py-0.5 outline-none focus:ring-0 focus:border-violet-700 text-[color:var(--app-text-main)] placeholder-[color:var(--app-text-muted)] transition-all text-[10px] font-medium"
             />
-            
+
             <div className="flex items-center justify-end pt-0.5">
               <button
                 type="submit"
                 disabled={!text.trim()}
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-lg shadow-purple-500/40 flex items-center gap-1 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-30 disabled:shadow-none disabled:cursor-not-allowed"
+                className={`
+                  px-4 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all transform active:scale-95
+                  ${text.trim()
+                    ? 'bg-[color:var(--app-primary-soft)] text-[color:var(--app-primary)] shadow-sm'
+                    : 'bg-[color:var(--app-surface-hover)] text-[color:var(--app-text-muted)] cursor-not-allowed opacity-50'
+                  }
+                `}
               >
                 <Plus size={11} strokeWidth={3} />
                 {language === 'en' ? 'Add' : '添加'}
@@ -246,10 +222,10 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
           </div>
         </div>
       </form>
-      
+
       {/* Due Picker */}
       <AnimatePresence>
-        {showDuePicker && (
+        {false && (
           <motion.div
             layout
             initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
@@ -265,24 +241,23 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
                 d.setDate(d.getDate() + opt.days)
                 const val = formatDateLocal(d)
                 const isSelected = selectedDate === val
-                
+
                 return (
                   <button
                     key={opt.label}
                     type="button"
                     onClick={() => selectQuickOption(opt.days)}
-                    className={`py-2 rounded-xl text-[11px] font-semibold transition-colors duration-100 cursor-pointer ${
-                      isSelected
-                        ? 'bg-violet-500 text-white'
-                        : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
-                    }`}
+                    className={`py-2 rounded-xl text-[11px] font-semibold transition-colors duration-100 cursor-pointer ${isSelected
+                      ? 'bg-violet-500 text-white'
+                      : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
+                      }`}
                   >
                     {opt.label}
                   </button>
                 )
               })}
             </div>
-            
+
             {/* Custom Calendar */}
             <div className="space-y-3">
               {/* Month Navigation */}
@@ -305,70 +280,69 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
                   <ChevronRight size={16} />
                 </button>
               </div>
-              
+
               {/* Calendar Grid - Fixed Columns, Center Items */}
               <div className="grid grid-cols-7 gap-y-1 justify-items-center">
                 {headers}
                 {days}
               </div>
             </div>
-            
+
             {/* Time Input */}
             <div className="flex flex-col gap-3 pt-3 border-t border-violet-50">
               <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-neu-muted/40 uppercase tracking-wider">Time</span>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={2}
-                      value={hour}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 2)
-                        setHour(val)
-                        if (val.length === 2) {
-                          setHour(normalizeHour(val))
-                          minuteInputRef.current?.focus()
-                          minuteInputRef.current?.select()
-                        }
-                      }}
-                      onBlur={(e) => setHour(normalizeHour(e.target.value))}
-                      className="w-8 h-8 rounded-lg bg-violet-50/50 border border-violet-100 text-center text-xs font-bold text-violet-600 outline-none focus:border-violet-300 focus:bg-white transition-colors"
-                    />
-                    <span className="text-violet-300 font-bold">:</span>
-                    <input
-                      ref={minuteInputRef}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={2}
-                      value={minute}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setMinute(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                      onBlur={(e) => setMinute(normalizeMinute(e.target.value))}
-                      className="w-8 h-8 rounded-lg bg-violet-50/50 border border-violet-100 text-center text-xs font-bold text-violet-600 outline-none focus:border-violet-300 focus:bg-white transition-colors"
-                    />
-                  </div>
+                <span className="text-[10px] font-bold text-neu-muted/40 uppercase tracking-wider">Time</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={hour}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 2)
+                      setHour(val)
+                      if (val.length === 2) {
+                        setHour(normalizeHour(val))
+                        minuteInputRef.current?.focus()
+                        minuteInputRef.current?.select()
+                      }
+                    }}
+                    onBlur={(e) => setHour(normalizeHour(e.target.value))}
+                    className="w-8 h-8 rounded-lg bg-violet-50/50 border border-violet-100 text-center text-xs font-bold text-violet-600 outline-none focus:border-violet-300 focus:bg-white transition-colors"
+                  />
+                  <span className="text-violet-300 font-bold">:</span>
+                  <input
+                    ref={minuteInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={minute}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setMinute(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                    onBlur={(e) => setMinute(normalizeMinute(e.target.value))}
+                    className="w-8 h-8 rounded-lg bg-violet-50/50 border border-violet-100 text-center text-xs font-bold text-violet-600 outline-none focus:border-violet-300 focus:bg-white transition-colors"
+                  />
+                </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-2">
                 {['09', '12', '18'].map((h) => (
                   <button
                     key={h}
                     type="button"
                     onClick={() => { setHour(h); setMinute('00') }}
-                    className={`px-2 py-1.5 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${
-                      hour === h && minute === '00'
-                        ? 'bg-violet-500 text-white shadow-md shadow-violet-500/20'
-                        : 'bg-violet-50/50 text-violet-500 hover:bg-violet-100'
-                    }`}
+                    className={`px-2 py-1.5 rounded-[10px] text-[10px] font-semibold transition-all cursor-pointer ${hour === h && minute === '00'
+                      ? 'bg-violet-500 text-white shadow-md shadow-violet-500/20'
+                      : 'bg-violet-50/50 text-violet-500 hover:bg-violet-100'
+                      }`}
                   >
                     {h}:00
                   </button>
                 ))}
               </div>
             </div>
-            
+
             {/* Preview */}
             {hasDue && (
               <div className="flex items-center justify-between py-2 px-3 bg-green-50 rounded-xl">
@@ -406,7 +380,7 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 overflow-hidden flex flex-col items-center p-6 sm:p-8 relative"
+              className="w-full max-w-sm bg-[color:var(--app-surface)] backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-[color:var(--app-border)] overflow-hidden flex flex-col items-center p-6 sm:p-8 relative"
             >
               {/* Header */}
               <div className="flex items-center justify-between w-full mb-8">
@@ -472,21 +446,19 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
               <div className="bg-slate-100/80 p-1.5 rounded-2xl flex items-center mb-10 border border-white/60 shadow-inner w-56">
                 <button
                   onClick={() => setIsAM(true)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
-                    isAM
-                      ? 'bg-white text-primary shadow-sm border border-slate-100'
-                      : 'text-slate-400 hover:text-slate-600'
-                  }`}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${isAM
+                    ? 'bg-white text-primary shadow-sm border border-slate-100'
+                    : 'text-slate-400 hover:text-slate-600'
+                    }`}
                 >
                   AM
                 </button>
                 <button
                   onClick={() => setIsAM(false)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
-                    !isAM
-                      ? 'bg-white text-primary shadow-sm border border-slate-100'
-                      : 'text-slate-400 hover:text-slate-600'
-                  }`}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${!isAM
+                    ? 'bg-white text-primary shadow-sm border border-slate-100'
+                    : 'text-slate-400 hover:text-slate-600'
+                    }`}
                 >
                   PM
                 </button>
@@ -495,7 +467,7 @@ export default function TodoInput({ onAdd, onAddWithDetails, language }: TodoInp
               {/* Set Time Button */}
               <button
                 onClick={handleSetTime}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-semibold text-lg shadow-lg shadow-violet-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group border border-white/20"
+                className="w-full py-4 rounded-2xl bg-theme-primary hover:bg-[color:var(--app-primary-hover)] text-white font-semibold text-lg shadow-theme transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group border border-white/10"
               >
                 <CheckCircle size={20} className="text-white/90 group-hover:text-white transition-colors" />
                 {language === 'en' ? 'Set Time' : '设置时间'}

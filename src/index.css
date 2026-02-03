@@ -3,50 +3,148 @@
 @tailwind utilities;
 
 @layer base {
-  html, body {
+  :root {
+    --app-bg-rgb: 248, 250, 252;
+    /* slate-50 */
+    --app-bg: rgb(var(--app-bg-rgb));
+    --app-surface-rgb: 255, 255, 255;
+    --app-surface: rgb(var(--app-surface-rgb));
+    --app-surface-hover: #f1f5f9;
+    /* slate-100 */
+    --app-text-main: #1e293b;
+    /* slate-800 */
+    --app-text-sub: #475569;
+    /* slate-600 */
+    --app-text-muted: #94a3b8;
+    /* slate-400 */
+    --app-border: #e2e8f0;
+    /* slate-200 */
+    --app-divider: rgba(226, 232, 240, 0.5);
+    --app-highlight: rgba(122, 108, 255, 0.1);
+
+    /* Primary Color (Violet) - Solid in Light Mode */
+    --app-primary-bg: #8b5cf6;
+    --app-primary-hover: #7c3aed;
+    --app-shadow-glow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark {
+    /* Updated Dark Theme Colors - Blue-Gray-Black based */
+    --app-bg: #121826;
+    --app-bg-elevated: #151C2B;
+    --app-surface: #1A2236;
+    --app-surface-2: #202A40;
+    --app-surface-hover: #26304d;
+    /* Approx 6-10% lighter than surface */
+
+    --app-text-main: #E8EBF5;
+    --app-text-sub: #A5ADC6;
+    --app-text-muted: #6C7590;
+
+    --app-border: rgba(255, 255, 255, 0.08);
+    /* Low contrast border */
+    --app-divider: rgba(255, 255, 255, 0.04);
+
+    --app-primary: #7A6CFF;
+    --app-primary-hover: #8F84FF;
+    --app-primary-pressed: #6A5BFF;
+    --app-primary-soft: rgba(122, 108, 255, 0.16);
+
+    --app-primary-bg: var(--app-primary);
+
+    --app-success: #37D67A;
+    --app-warning: #F7C948;
+    --app-danger: #FF5D5D;
+
+    /* Shadow */
+    --app-shadow-glow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+    /* Focus Ring */
+    --app-focus-ring: 0 0 0 3px rgba(122, 108, 255, 0.35);
+
+    /* Dark Header Background */
+    --app-header-bg: rgba(18, 24, 38, 0.85);
+
+    /* Ensure RGB variable matches Dark BG for App.tsx */
+    --app-bg-rgb: 18, 24, 38;
+  }
+
+  .glass {
+    /* Glass Theme - Windows 11 / macOS Acrylic effect */
+    --app-bg: rgba(18, 24, 38, 0.55);
+    /* glassBg */
+    --app-bg-rgb: 18, 24, 38;
+    --app-surface: rgba(26, 34, 54, 0.55);
+    /* glassSurface - user suggested rgba(26,34,54,0.55) or rgba(255,255,255,0.12) */
+    --app-surface-hover: rgba(26, 34, 54, 0.65);
+    /* glassSurfaceHover */
+
+    --app-border: rgba(255, 255, 255, 0.18);
+    /* glassBorder - Stronger highlight */
+    --app-highlight: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
+    /* glassHighlight */
+
+    --app-shadow-glow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    /* glassShadow - Stronger shadow */
+    --glass-blur: 24px;
+
+    /* Variables for slider adjustment */
+    --glass-alpha: 0.42;
+
+    /* Inherit dark text tokens */
+    --app-text-main: #E8EBF5;
+    --app-text-sub: #A5ADC6;
+    --app-text-muted: #6C7590;
+
+    --app-primary: #7A6CFF;
+    --app-primary-soft: rgba(122, 108, 255, 0.16);
+    --app-primary-bg: var(--app-primary);
+  }
+
+  html,
+  body {
     @apply overflow-hidden;
-    /* Avoid fully transparent window on Windows which can swallow clicks */
-    background-color: rgba(0, 0, 0, 0.01);
+    @apply overflow-hidden;
+    /* Transparent body to allow rounded corners without black background */
+    background-color: transparent;
+    color: var(--app-text-main);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 4px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
-    background-color: rgba(139, 92, 246, 0.15);
+    background: rgba(148, 163, 184, 0.3);
     border-radius: 9999px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(139, 92, 246, 0.3);
+    background: rgba(148, 163, 184, 0.5);
   }
 }
 
+/* Draggable region helpers for Electron */
 .app-drag-region {
   -webkit-app-region: drag;
 }
 
 .app-no-drag {
   -webkit-app-region: no-drag;
-}
-
-/* Toggle Checkbox Styles */
-.toggle-checkbox:checked {
-  right: 0;
-  border-color: #8b5cf6;
-}
-
-.toggle-checkbox:checked + label {
-  background-color: #8b5cf6;
-}
-
-/* Shimmer Animation */
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
 }

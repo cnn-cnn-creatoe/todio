@@ -43,6 +43,12 @@ export const translations = {
     editTask: 'Edit Task',
     setReminder: 'Set Reminder',
     moveToTomorrow: 'Move to Tomorrow',
+    focusMode: 'Focus',
+    calendarMode: 'Calendar',
+    notifications: 'Notifications',
+    enableNotifications: 'Enable Notifications',
+    remindersEnabled: 'Reminders enabled',
+    remindersDisabled: 'Reminders disabled',
   },
   zh: {
     appName: 'Todio',
@@ -85,6 +91,12 @@ export const translations = {
     editTask: '编辑任务',
     setReminder: '设置提醒',
     moveToTomorrow: '移至明天',
+    notifications: '提醒',
+    enableNotifications: '启用提醒',
+    remindersEnabled: '提醒已开启',
+    remindersDisabled: '提醒已关闭',
+    focusMode: '专注',
+    calendarMode: '日历',
   }
 }
 

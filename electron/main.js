@@ -23,7 +23,7 @@ const autoExitMs = Number.parseInt(process.env.TODIO_AUTO_EXIT_MS || '', 10);
 
 const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../package.json')));
 const CURRENT_VERSION = packageJson.version;
-const GITHUB_REPO = 'nan/todio';
+const GITHUB_REPO = 'cnn-cnn-creatoe/todio';
 const UPDATE_CHECK_KEY = 'todio-skip-update';
 const SKIP_VERSION_KEY = 'todio-skip-version';
 
@@ -164,8 +164,9 @@ function createWindow() {
     skipTaskbar: false,
     show: true,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
     minWidth: 260,
     minHeight: 360,
@@ -259,6 +260,28 @@ function createWindow() {
     mainWindow?.minimize();
   });
 
+  ipcMain.on('set-opacity', (_event, value) => {
+    const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
+    const opacity = Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : 1;
+    // If window is transparent, try to apply opacity to the whole window.
+    try {
+      mainWindow?.setOpacity(opacity);
+    } catch {
+      // Ignore if unsupported on current platform
+    }
+  });
+
+  ipcMain.on('start-drag', () => {
+    try {
+      // Electron 27+ supports programmatic dragging on Windows/macOS.
+      // If unavailable on the current platform/version, this will throw.
+      mainWindow?.startDragging();
+    } catch {
+      // Ignore if unsupported
+    }
+  });
+
+
   ipcMain.on('toggle-always-on-top', (event, shouldPin) => {
     mainWindow?.setAlwaysOnTop(shouldPin);
   });
@@ -294,6 +317,19 @@ function createWindow() {
   // Update check handlers
   ipcMain.handle('check-for-updates', async () => {
     return await checkForUpdates();
+  });
+
+  // Open external links from renderer (used by preload bridge)
+  ipcMain.handle('open-external', async (_event, url) => {
+    try {
+      if (typeof url === 'string' && url.startsWith('http')) {
+        await shell.openExternal(url);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   });
 
   ipcMain.handle('get-current-version', () => {
@@ -429,8 +465,17 @@ function createTray() {
 let notificationTimer = null;
 let scheduledTodos = [];
 
-ipcMain.on('update-notification-schedule', (event, todos) => {
-  scheduledTodos = todos.filter(t => t.dueTime && t.notify);
+ipcMain.on('update-notification-schedule', (_event, payload) => {
+  // Payload shape (from renderer): { enabled: boolean, todos: Array<todo> }
+  const enabled = !!payload?.enabled;
+  if (!enabled) {
+    scheduledTodos = [];
+    return;
+  }
+
+  const list = Array.isArray(payload?.todos) ? payload.todos : [];
+  // Default: notify enabled unless explicitly set to false
+  scheduledTodos = list.filter(t => t && t.dueTime && t.notify !== false && !t.completed);
 });
 
 function checkNotifications() {
@@ -461,52 +506,41 @@ let notificationState = new Map(); // id -> { lastNotifiedStage: string }
 
 function runScheduler() {
   const now = new Date();
-  
-  scheduledTodos.forEach(todo => {
-    if (!todo.dueTime || todo.completed) return;
+  const ONE_MINUTE_MS = 60 * 1000;
+
+  scheduledTodos.forEach((todo) => {
+    if (!todo || !todo.dueTime || todo.completed) return;
+
     const due = new Date(todo.dueTime);
-    const diffInSeconds = (due - now) / 1000;
-    const diffInMinutes = diffInSeconds / 60;
-    
-    let stage = '';
-    let message = '';
+    if (Number.isNaN(due.getTime())) return;
 
-    if (diffInSeconds <= 0 && diffInSeconds > -60) {
-      stage = 'due';
-      message = 'is due now!';
-    } else if (diffInMinutes <= 5 && diffInMinutes > 4) {
-      stage = '5m';
-      message = 'is due in 5 minutes.';
-    } else if (diffInMinutes <= 30 && diffInMinutes > 29) {
-      stage = '30m';
-      message = 'is due in 30 minutes.';
-    } else if (diffInMinutes <= 60 && diffInMinutes > 59) {
-      stage = '1h';
-      message = 'is due in 1 hour.';
-    } else if (diffInMinutes <= 1440 && diffInMinutes > 1439) {
-      stage = '24h';
-      message = 'is due in 24 hours.';
+    const diffMs = due.getTime() - now.getTime();
+
+    // Notify only once around the due time (within ±1 minute window)
+    if (Math.abs(diffMs) > ONE_MINUTE_MS) return;
+
+    const state = notificationState.get(todo.id) || {};
+    const dueKey = typeof todo.dueTime === 'string' ? todo.dueTime : due.toISOString();
+
+    if (state.lastNotifiedDueTime === dueKey) return;
+
+    if (Notification.isSupported()) {
+      const notificationIconPath = process.platform === 'win32'
+        ? path.join(__dirname, '../build/icon.ico')
+        : path.join(__dirname, '../build/icon.png');
+
+      new Notification({
+        title: 'Todio Reminder',
+        body: `Task "${todo.text}" is due now!`,
+        icon: notificationIconPath,
+      }).show();
     }
 
-    if (stage) {
-      const state = notificationState.get(todo.id) || {};
-      if (state.lastNotifiedStage !== stage) {
-        // Send Notification
-        if (Notification.isSupported()) {
-          const notificationIconPath = process.platform === 'win32'
-            ? path.join(__dirname, '../build/icon.ico')
-            : path.join(__dirname, '../build/icon.png');
-
-          new Notification({
-            title: 'Todio Reminder',
-            body: `Task "${todo.text}" ${message}`,
-            icon: notificationIconPath
-          }).show();
-        }
-        
-        notificationState.set(todo.id, { ...state, lastNotifiedStage: stage });
-      }
-    }
+    notificationState.set(todo.id, {
+      ...state,
+      lastNotifiedDueTime: dueKey,
+      lastNotifiedAt: now.toISOString(),
+    });
   });
 }
 
