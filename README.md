@@ -121,28 +121,12 @@ npm run electron:build
 - `public/` 静态资源
 - `build/` 安装器与图标资源
 
-## 移动端构建（Android / iOS）
+## 移动端下载（Android / iOS）
 
-本项目使用 Capacitor 打包移动端壳层，已提供一键脚本：
+移动端安装包均在 Releases 中提供，请按平台下载：
 
-```bash
-npm run mobile:add
-npm run mobile:sync
-npm run mobile:android
-npm run mobile:ios
-```
+- Android：下载 `.apk` 文件（示例：`Todio-1.1.1-Android.apk`）
+- iOS：下载 `.ipa` 文件（示例：`Todio-1.1.1-iOS.ipa`）
 
 说明：
-- Android：生成 `android/` 工程并打开 Android Studio。
-- iOS：仅支持在 macOS + Xcode 环境构建，生成 `ios/` 工程并打开 Xcode。
-- 首次运行会自动下载 Capacitor CLI。
-
-## 移动端下载 / 发布策略
-
-### Android
-- 适合直接下载：在 Android Studio 中生成 **APK**（Release 签名），把 `android/app/build/outputs/apk/release/app-release.apk` 上传到 GitHub Releases。
-- 适合应用商店：生成 **AAB**（Release 签名），把 `android/app/build/outputs/bundle/release/app-release.aab` 上传到 Google Play Console。
-
-### iOS
-- 标准发布：在 Xcode 中 `Product > Archive` 后通过 **TestFlight / App Store** 分发。
-- 直接下载限制：iOS 不支持像 APK 那样的自由安装，除非使用 **企业签名/Ad Hoc**，否则需要通过 TestFlight 或 App Store。
+- iOS 安装需已签名的 `.ipa`；若设备无法直接安装，请使用 TestFlight/企业签名方式。
