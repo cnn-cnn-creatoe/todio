@@ -10,7 +10,7 @@
 [Linux 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest) ·
 [macOS 下载](https://github.com/cnn-cnn-creatoe/todio/releases/latest)
 
-下载提示：Windows 请下载 `.exe`；macOS 请下载 `.dmg`/`.zip`；Linux 请下载 `.AppImage`/`.deb`；Android 请下载 `.apk`；iOS 请下载 `.ipa`
+下载提示：Windows 请下载 `.exe`；macOS 请下载 `.dmg`/`.zip`；Linux 请下载 `.AppImage`/`.deb`；Android 请下载 `.apk`；iOS 为 `.ipa`（需签名）
 
 </div>
 
@@ -133,7 +133,7 @@ npm run electron:build
 移动端安装包均在 Releases 中提供，请按平台下载：
 
 - Android：下载 `.apk` 文件（示例：`Todio-1.1.1-Android.apk`）
-- iOS：下载 `.ipa` 文件（示例：`Todio-1.1.1-iOS.ipa`）
+- iOS：`.ipa` 安装包（需自行签名打包）
 
 说明：
 - iOS 安装需已签名的 `.ipa`；若设备无法直接安装，请使用 TestFlight/企业签名方式。
