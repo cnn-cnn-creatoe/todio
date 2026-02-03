@@ -136,3 +136,13 @@ npm run mobile:ios
 - Android：生成 `android/` 工程并打开 Android Studio。
 - iOS：仅支持在 macOS + Xcode 环境构建，生成 `ios/` 工程并打开 Xcode。
 - 首次运行会自动下载 Capacitor CLI。
+
+## 移动端下载 / 发布策略
+
+### Android
+- 适合直接下载：在 Android Studio 中生成 **APK**（Release 签名），把 `android/app/build/outputs/apk/release/app-release.apk` 上传到 GitHub Releases。
+- 适合应用商店：生成 **AAB**（Release 签名），把 `android/app/build/outputs/bundle/release/app-release.aab` 上传到 Google Play Console。
+
+### iOS
+- 标准发布：在 Xcode 中 `Product > Archive` 后通过 **TestFlight / App Store** 分发。
+- 直接下载限制：iOS 不支持像 APK 那样的自由安装，除非使用 **企业签名/Ad Hoc**，否则需要通过 TestFlight 或 App Store。
