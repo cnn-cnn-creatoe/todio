@@ -80,7 +80,7 @@
         "dmg",
         "zip"
       ],
-      "icon": "build/icon.ico",
+      "icon": "build/icon.png",
       "category": "public.app-category.productivity",
       "artifactName": "Todio-${version}-macOS.${ext}"
     },
